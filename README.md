@@ -1,5 +1,5 @@
 ## What is this?
-This is a C# implementation of Prim's algorithm.
+This is a tiny maze game, using Prim's algorithm to generate a random maze.
 I've used Windows Forms for drawing.
 
 ## How to build?
@@ -8,7 +8,7 @@ Download project and import the .sln file in the main directory.
 Tested with Visual Studio 2015/17.
 
 ## How to use?
-W, A, S, D, and corresponding arrow keys to move around.
+W, A, S, D, and corresponding arrow keys to move the player character around.
 You finish the game if you touch the exit tile.
 
 ## Credits
