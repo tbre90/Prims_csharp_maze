@@ -4,11 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.Diagnostics;
 
-using PDKey = Maze.PlatformData.Key;
-using PDTBC = Maze.PlatformData.TaggedBitmapCoordinates;
+using PDKey = Platform.PlatformData.Key;
+using PDTBC = Platform.PlatformData.TaggedBitmapCoordinates;
 
-namespace Maze
+using Maze;
+
+namespace Game
 {
     public static class GameInterface
     {
@@ -39,8 +42,8 @@ namespace Maze
 
         int WindowWidth = 0;
         int WindowHeight = 0;
-        TilePosition OldPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize } ;
-        TilePosition CurrentPlayerPosition;
+        TilePosition OldPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize };
+        TilePosition CurrentPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize };
         List<PDTBC> EmptyDrawList = new List<PDTBC>();
 
         public Game(IMaze mazeInterface)

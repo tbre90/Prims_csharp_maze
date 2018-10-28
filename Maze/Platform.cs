@@ -9,10 +9,13 @@ using System.Drawing;
 using System.Diagnostics;
 using System.IO;
 
-using PDKey = Maze.PlatformData.Key;
-using PDTBC = Maze.PlatformData.TaggedBitmapCoordinates;
+using PDKey = Platform.PlatformData.Key;
+using PDTBC = Platform.PlatformData.TaggedBitmapCoordinates;
 
-namespace Maze
+using Game;
+using Maze;
+
+namespace Platform
 {
 
     public class MainProgram
@@ -20,7 +23,7 @@ namespace Maze
         [STAThread]
         public static void Main()
         {
-            var window = new Platform("Prim's Maze", new Game(new Maze(21, 21)));
+            var window = new Platform("Prim's Maze", GameInterface.NewInterface(Maze.MazeInterface.NewInterface(21, 21)));
             Application.Run(window);
         }
     }
@@ -115,7 +118,6 @@ namespace Maze
             Graphics graphics = e.Graphics;
             foreach (var bm in DrawList)
             {
-                Debug.WriteLine("{0}:{1}", bm.x, bm.y);
                 graphics.DrawImage(TaggedBitmaps[bm.tag], bm.x, bm.y);
             }
         }
