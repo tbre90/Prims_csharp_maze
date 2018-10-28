@@ -10,6 +10,14 @@ using PDTBC = Maze.PlatformData.TaggedBitmapCoordinates;
 
 namespace Maze
 {
+    public static class GameInterface
+    {
+        public static IGame NewInterface(IMaze mazeInterface)
+        {
+            return new Game(mazeInterface);
+        }
+    }
+
     public interface IGame
     {
         List<PDKey> WhenPressedNotify(); /* list of keys that the game wants the platform layer to listen for */
@@ -20,7 +28,7 @@ namespace Maze
         void WindowSizeChanged(int newWidth, int newHeight); /* only used right after a Game object is instantiated, to set the window dimension (bounds checking) */
     }
 
-    public class Game : IGame
+    class Game : IGame
     {
         const int TileSize = 32;
         readonly Tuple<int, Bitmap> Goblin = Tuple.Create(1, Properties.Resources.Goblin);

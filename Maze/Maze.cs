@@ -6,17 +6,25 @@ using System.Threading.Tasks;
 
 namespace Maze
 {
+    public static class MazeInterface
+    {
+        public static IMaze NewInterface(int rows, int columns)
+        {
+            return new PrimsMaze(rows, columns);
+        }
+    }
+
     public interface IMaze
     {
         int[,] NewMaze(int rows, int columns);
     }
 
-    public class Maze : IMaze
+    class PrimsMaze : IMaze
     {
         int DefaultRows = 21;
         int DefaultColumns = 21;
 
-        public Maze(int rows, int columns)
+        public PrimsMaze(int rows, int columns)
         {
             DefaultRows = rows;
             DefaultColumns = columns;
