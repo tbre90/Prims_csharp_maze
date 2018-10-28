@@ -23,7 +23,7 @@ namespace Platform
         [STAThread]
         public static void Main()
         {
-            var window = new Platform("Prim's Maze", GameInterface.NewInterface(Maze.MazeInterface.NewInterface(21, 21)));
+            var window = new Platform("Prim's Maze", GameInterface.NewInterface(Maze.MazeInterface.NewInterface()));
             Application.Run(window);
         }
     }
@@ -56,9 +56,7 @@ namespace Platform
             MinimizeBox = false; // don't want to handle max/min-imize
             MaximizeBox = false; // --||--
             BackColor = Color.Black;
-            ClientSize = new Size(25 * 32, 20 * 32);
-            //Width = 800;
-            //Height = 640;
+            ClientSize = new Size(21 * 32, 21 * 32);
             Paint += new PaintEventHandler(Draw);
             KeyDown += new KeyEventHandler(HandleInput);
 
@@ -69,7 +67,12 @@ namespace Platform
             TaggedBitmaps = GameInterface.LoadTaggedBitmaps();
 
             DrawList = GameInterface.Initialize();
-            Refresh();
+            //Refresh();
+            Update();
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
         }
 
         void RegisterWorkKeys(List<PDKey> whenPressedNotify)
@@ -108,13 +111,60 @@ namespace Platform
                 if (GameInterface.DoWork(maybeAction.Value))
                 {
                     DrawList = GameInterface.ToDraw();
-                    Refresh();
+                    foreach (var item in DrawList)
+                    {
+                        Invalidate(
+                            new Rectangle(
+                                item.x,
+                                item.y,
+                                TaggedBitmaps[item.tag].Width,
+                                TaggedBitmaps[item.tag].Height)
+                        );
+                    }
+                    Update();
                 }
             }
         }
 
         void Draw(object sender, PaintEventArgs e)
         {
+            // check if window is outside monitor, i.e. whole/part of window might need to be refreshed
+            var monitorLeft   = SystemInformation.VirtualScreen.Left;
+            var monitorTop    = SystemInformation.VirtualScreen.Top;
+            var monitorWidth  = SystemInformation.VirtualScreen.Width;
+            var monitorHeight = SystemInformation.VirtualScreen.Height;
+
+            var bounds = DesktopBounds;
+
+            List<PDTBC> oldDrawList = null;
+
+            if (bounds.X < monitorLeft)
+            {
+                oldDrawList = DrawList;
+                DrawList = GameInterface.AllTiles();
+            }
+            else if (bounds.Y < monitorTop)
+            {
+                oldDrawList = DrawList;
+                DrawList = GameInterface.AllTiles();
+            }
+            else if (bounds.Right > monitorWidth)
+            {
+                oldDrawList = DrawList;
+                DrawList = GameInterface.AllTiles();
+            }
+            else if (bounds.Bottom > monitorHeight)
+            {
+                oldDrawList = DrawList;
+                DrawList = GameInterface.AllTiles();
+            }
+
+            if (oldDrawList != null)
+            {
+                DrawList.AddRange(oldDrawList);
+                Invalidate();
+            }
+
             Graphics graphics = e.Graphics;
             foreach (var bm in DrawList)
             {

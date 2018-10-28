@@ -203,9 +203,9 @@ namespace Game.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap Wooden_wall {
+        internal static System.Drawing.Bitmap Wooden_path {
             get {
-                object obj = ResourceManager.GetObject("Wooden_wall", resourceCulture);
+                object obj = ResourceManager.GetObject("Wooden_path", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

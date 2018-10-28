@@ -160,7 +160,7 @@
   <data name="Letter_Y" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resource\PNG\Upper_Y.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Wooden_wall" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resource\PNG\wooden_wall.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="Wooden_path" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resource\PNG\wooden_path.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

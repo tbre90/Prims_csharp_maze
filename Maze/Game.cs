@@ -10,6 +10,7 @@ using PDKey = Platform.PlatformData.Key;
 using PDTBC = Platform.PlatformData.TaggedBitmapCoordinates;
 
 using Maze;
+using Platform;
 
 namespace Game
 {
@@ -17,7 +18,7 @@ namespace Game
     {
         public static IGame NewInterface(IMaze mazeInterface)
         {
-            return new Game(mazeInterface);
+            return new TraversingPlayer(mazeInterface);
         }
     }
 
@@ -26,16 +27,17 @@ namespace Game
         List<PDKey> WhenPressedNotify(); /* list of keys that the game wants the platform layer to listen for */
         Dictionary<int, Bitmap> LoadTaggedBitmaps(); /* bitmaps with tags to more easily refer to them after being loaded by the platform layer */
         List<PDTBC> Initialize(); /* set initialize game state */
+        List<PDTBC> AllTiles(); /* called by platform layer if it ever needs to repaint more than just previous and current tile */
         bool DoWork(PDKey keyPressed); /* did the game do any work? */
         List<PDTBC> ToDraw(); /* if it did, call ToDraw() for a list of bitmap tags and their new positions */
         void WindowSizeChanged(int newWidth, int newHeight); /* only used right after a Game object is instantiated, to set the window dimension (bounds checking) */
     }
 
-    class Game : IGame
+    class TraversingPlayer : IGame
     {
         const int TileSize = 32;
         readonly Tuple<int, Bitmap> Goblin = Tuple.Create(1, Properties.Resources.Goblin);
-        readonly Tuple<int, Bitmap> Path = Tuple.Create(2, Properties.Resources.Wooden_wall);
+        readonly Tuple<int, Bitmap> Path = Tuple.Create(2, Properties.Resources.Wooden_path);
         readonly Tuple<int, Bitmap> Exit = Tuple.Create(3, Properties.Resources.Exit);
         readonly Dictionary<PDKey, Action> MovementKeys;
         readonly IMaze MazeInterface;
@@ -46,7 +48,7 @@ namespace Game
         TilePosition CurrentPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize };
         List<PDTBC> EmptyDrawList = new List<PDTBC>();
 
-        public Game(IMaze mazeInterface)
+        public TraversingPlayer(IMaze mazeInterface)
         {
             MovementKeys = new Dictionary<PDKey, Action>
             {
@@ -134,8 +136,9 @@ namespace Game
             {
                 return new List<PDTBC>
                 {
-                    new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale },
                     new PDTBC { tag = Path.Item1, x = OldPlayerPosition.x * CurrentPlayerPosition.scale, y = OldPlayerPosition.y * CurrentPlayerPosition.scale },
+                    new PDTBC { tag = Path.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale },
+                    new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale },
                 };
             }
         }
@@ -157,10 +160,41 @@ namespace Game
 
         public List<PDTBC> Initialize()
         {
-            return new List<PDTBC>
+            var mazeTiles = MazeInterface.NewMaze();
+
+            var drawList = new List<PDTBC>();
+
+            for (int i = 0; i < mazeTiles.GetLength(0); i++)
             {
-                new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale }
-            };
+                for (int j = 0; j < mazeTiles.GetLength(1); j++)
+                {
+                    drawList.Add(
+                        new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                    );
+                }
+            }
+
+            drawList.Add(new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale });
+
+            return drawList;
+        }
+
+        public List<PDTBC> AllTiles()
+        {
+            var maze = MazeInterface.GetCurrent();
+            var drawList = new List<PDTBC>();
+
+            for (int i = 0; i < maze.GetLength(0); i++)
+            {
+                for (int j = 0; j < maze.GetLength(1); j++)
+                {
+                    drawList.Add(
+                        new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                    );
+                }
+            }
+
+            return drawList;
         }
 
         struct TilePosition

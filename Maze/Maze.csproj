@@ -87,7 +87,7 @@
     <Content Include="Resource\PNG\Upper_V.png" />
     <Content Include="Resource\PNG\Upper_W.png" />
     <Content Include="Resource\PNG\Upper_Y.png" />
-    <Content Include="Resource\PNG\wooden_wall.png" />
+    <Content Include="Resource\PNG\wooden_path.png" />
     <Content Include="Resource\PNG\_Exclamation.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
