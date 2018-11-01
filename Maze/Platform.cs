@@ -153,25 +153,20 @@ namespace Platform
 
                 List<PDTBC> oldDrawList = null;
 
-                if (bounds.X < monitorLeft)
+                switch (bounds)
                 {
-                    oldDrawList = DrawList;
-                    DrawList = GameInterface.AllTiles();
-                }
-                else if (bounds.Y < monitorTop)
-                {
-                    oldDrawList = DrawList;
-                    DrawList = GameInterface.AllTiles();
-                }
-                else if (bounds.Right > monitorWidth)
-                {
-                    oldDrawList = DrawList;
-                    DrawList = GameInterface.AllTiles();
-                }
-                else if (bounds.Bottom > monitorHeight)
-                {
-                    oldDrawList = DrawList;
-                    DrawList = GameInterface.AllTiles();
+                    case var _ when bounds.X < monitorLeft:
+                    case var _ when bounds.Y < monitorTop:
+                    case var _ when bounds.Right > monitorWidth:
+                    case var _ when bounds.Bottom > monitorHeight:
+                    {
+                            oldDrawList = DrawList;
+                            DrawList = GameInterface.AllTiles();
+                    } break;
+
+                    default:
+                    {
+                    } break;
                 }
 
                 if (oldDrawList != null)

@@ -79,7 +79,7 @@ namespace Maze
             {
                 for (int column = 0; column < CurrentMaze.GetLength(1); column++)
                 {
-                    CurrentMaze[row, column] = MazeData.Tile.Path;
+                    CurrentMaze[row, column] = MazeData.Tile.Wall;
                 }
             }
 

@@ -188,9 +188,12 @@ namespace Game
             {
                 for (int j = 0; j < maze.GetLength(1); j++)
                 {
-                    drawList.Add(
-                        new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
-                    );
+                    if (maze[i, j] == MazeData.Tile.Path)
+                    {
+                        drawList.Add(
+                            new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                        );
+                    }
                 }
             }
 
