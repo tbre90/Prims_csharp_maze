@@ -40,6 +40,11 @@ namespace Platform
 
     public class Platform : Form
     {
+        long previousTimeInMsec = 0;
+        long currentTimeInMsec = 0;
+
+        long msecSinceLastUpdate = (long) (1.0 / 30.0 * 1000.0);
+
         IGame GameInterface;
         List<Tuple<Keys, PDKey>> InputToHandle = new List<Tuple<Keys, PDKey>>();
         Dictionary<int, Bitmap> TaggedBitmaps;
@@ -128,41 +133,52 @@ namespace Platform
 
         void Draw(object sender, PaintEventArgs e)
         {
-            // check if window is outside monitor, i.e. whole/part of window might need to be refreshed
-            var monitorLeft   = SystemInformation.VirtualScreen.Left;
-            var monitorTop    = SystemInformation.VirtualScreen.Top;
-            var monitorWidth  = SystemInformation.VirtualScreen.Width;
-            var monitorHeight = SystemInformation.VirtualScreen.Height;
+            /* 
+             * check if window is outside monitor, i.e. whole/part of window might need to be refreshed
+             * 
+             * don't want to update too often, as this causes window to lag if dragged off screen
+             * so update at most 30 times per second
+             */
 
-            var bounds = DesktopBounds;
+            currentTimeInMsec = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
 
-            List<PDTBC> oldDrawList = null;
+            if (currentTimeInMsec - previousTimeInMsec > msecSinceLastUpdate)
+            {
+                var monitorLeft   = SystemInformation.VirtualScreen.Left;
+                var monitorTop    = SystemInformation.VirtualScreen.Top;
+                var monitorWidth  = SystemInformation.VirtualScreen.Width;
+                var monitorHeight = SystemInformation.VirtualScreen.Height;
 
-            if (bounds.X < monitorLeft)
-            {
-                oldDrawList = DrawList;
-                DrawList = GameInterface.AllTiles();
-            }
-            else if (bounds.Y < monitorTop)
-            {
-                oldDrawList = DrawList;
-                DrawList = GameInterface.AllTiles();
-            }
-            else if (bounds.Right > monitorWidth)
-            {
-                oldDrawList = DrawList;
-                DrawList = GameInterface.AllTiles();
-            }
-            else if (bounds.Bottom > monitorHeight)
-            {
-                oldDrawList = DrawList;
-                DrawList = GameInterface.AllTiles();
-            }
+                var bounds = DesktopBounds;
 
-            if (oldDrawList != null)
-            {
-                DrawList.AddRange(oldDrawList);
-                Invalidate();
+                List<PDTBC> oldDrawList = null;
+
+                if (bounds.X < monitorLeft)
+                {
+                    oldDrawList = DrawList;
+                    DrawList = GameInterface.AllTiles();
+                }
+                else if (bounds.Y < monitorTop)
+                {
+                    oldDrawList = DrawList;
+                    DrawList = GameInterface.AllTiles();
+                }
+                else if (bounds.Right > monitorWidth)
+                {
+                    oldDrawList = DrawList;
+                    DrawList = GameInterface.AllTiles();
+                }
+                else if (bounds.Bottom > monitorHeight)
+                {
+                    oldDrawList = DrawList;
+                    DrawList = GameInterface.AllTiles();
+                }
+
+                if (oldDrawList != null)
+                {
+                    DrawList.AddRange(oldDrawList);
+                    Invalidate();
+                }
             }
 
             Graphics graphics = e.Graphics;
@@ -170,6 +186,8 @@ namespace Platform
             {
                 graphics.DrawImage(TaggedBitmaps[bm.tag], bm.x, bm.y);
             }
+
+            previousTimeInMsec = currentTimeInMsec;
         }
     }
 }
