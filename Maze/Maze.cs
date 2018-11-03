@@ -29,14 +29,16 @@ namespace Maze
         public enum Tile { Passage, Blocked, Exit };
         public struct Position
         { 
-            public int x; public int y;
+            public int x;
+            public int y;
         }
     }
 
     public interface IMaze
     {
-         MT[,] NewMaze();
-         MT[,] GetCurrent();
+        MT[,] NewMaze();
+        MT[,] GetCurrent();
+        MT GetTile(int x, int y);
     }
 
     class TileCollection
@@ -282,6 +284,11 @@ namespace Maze
                     CurrentMaze[row, column] = MT.Blocked;
                 }
             }
+        }
+
+        public MT GetTile(int x, int y)
+        {
+            return CurrentMaze[x, y];
         }
     }
 

@@ -10,7 +10,8 @@ using PDKey = Platform.PlatformData.Key;
 using PDTBC = Platform.PlatformData.TaggedBitmapCoordinates;
 
 using Maze;
-using Platform;
+
+using MT = Maze.MazeData.Tile;
 
 namespace Game
 {
@@ -90,8 +91,12 @@ namespace Game
         {
             if (CurrentPlayerPosition.y * CurrentPlayerPosition.scale - TileSize >= 0)
             {
-                OldPlayerPosition = CurrentPlayerPosition;
-                CurrentPlayerPosition.y -= 1;
+                var northTile = MazeInterface.GetTile(CurrentPlayerPosition.x, CurrentPlayerPosition.y - 1);
+                if (northTile == MT.Passage)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.y -= 1;
+                }
             }
         }
 
@@ -99,8 +104,12 @@ namespace Game
         {
             if (CurrentPlayerPosition.y * CurrentPlayerPosition.scale + TileSize < WindowHeight)
             {
-                OldPlayerPosition = CurrentPlayerPosition;
-                CurrentPlayerPosition.y += 1;
+                var southTile = MazeInterface.GetTile(CurrentPlayerPosition.x, CurrentPlayerPosition.y + 1);
+                if (southTile == MT.Passage)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.y += 1;
+                }
             }
         }
 
@@ -108,8 +117,12 @@ namespace Game
         {
             if (CurrentPlayerPosition.x * CurrentPlayerPosition.scale - TileSize >= 0)
             {
-                OldPlayerPosition = CurrentPlayerPosition;
-                CurrentPlayerPosition.x -= 1;
+                var westTile = MazeInterface.GetTile(CurrentPlayerPosition.x - 1, CurrentPlayerPosition.y);
+                if (westTile == MT.Passage)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.x -= 1;
+                }
             }
         }
 
@@ -117,8 +130,12 @@ namespace Game
         {
             if (CurrentPlayerPosition.x * CurrentPlayerPosition.scale + TileSize < WindowWidth)
             {
-                OldPlayerPosition = CurrentPlayerPosition;
-                CurrentPlayerPosition.x += 1;
+                var westTile = MazeInterface.GetTile(CurrentPlayerPosition.x + 1, CurrentPlayerPosition.y);
+                if (westTile == MT.Passage)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.x += 1;
+                }
             }
         }
 
