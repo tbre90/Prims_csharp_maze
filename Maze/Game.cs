@@ -160,17 +160,29 @@ namespace Game
 
         public List<PDTBC> Initialize()
         {
-            var mazeTiles = MazeInterface.NewMaze();
+            var maze = MazeInterface.NewMaze();
 
             var drawList = new List<PDTBC>();
 
-            for (int i = 0; i < mazeTiles.GetLength(0); i++)
+            for (int i = 0; i < maze.GetLength(0); i++)
             {
-                for (int j = 0; j < mazeTiles.GetLength(1); j++)
+                for (int j = 0; j < maze.GetLength(1); j++)
                 {
-                    drawList.Add(
-                        new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
-                    );
+                    if (maze[i, j] == MazeData.Tile.Passage)
+                    {
+                        drawList.Add(
+                            new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                        );
+                    }
+                    else if (maze[i, j] == MazeData.Tile.Exit)
+                    {
+                        drawList.Add(
+                            new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                        );
+                        drawList.Add(
+                            new PDTBC { tag = Exit.Item1, x = i * TileSize, y = j * TileSize }
+                        );
+                    }
                 }
             }
 
@@ -192,6 +204,12 @@ namespace Game
                     {
                         drawList.Add(
                             new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                        );
+                    }
+                    else if (maze[i, j] == MazeData.Tile.Exit)
+                    {
+                        drawList.Add(
+                            new PDTBC { tag = Exit.Item1, x = i * TileSize, y = j * TileSize }
                         );
                     }
                 }

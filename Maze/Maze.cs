@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 
 using MT = Maze.MazeData.Tile;
 using MP = Maze.MazeData.Position;
-using MN = Maze.MazeData.Neighbours;
 
 namespace Maze
 {
@@ -27,13 +26,29 @@ namespace Maze
 
     public static class MazeData
     {
-        public enum Tile { Passage, Blocked };
-        public struct Position { public int x; public int y; }
-        public struct Neighbours {
-            public Position? NorthNeighbour;
-            public Position? SouthNeighbour;
-            public Position? EastNeighbour;
-            public Position? WestNeighbour; 
+        public enum Tile { Passage, Blocked, Exit };
+        public struct Position : IEquatable<MP>
+        { 
+            public int x; public int y;
+
+            public override bool Equals(object obj)
+            {
+                return obj is MP && Equals((MP)obj);
+            }
+
+            public bool Equals(MP other)
+            {
+                return x == other.x &&
+                       y == other.y;
+            }
+
+            public override int GetHashCode()
+            {
+                var hashCode = 1502939027;
+                hashCode = hashCode * -1521134295 + x.GetHashCode();
+                hashCode = hashCode * -1521134295 + y.GetHashCode();
+                return hashCode;
+            }
         }
     }
 
@@ -128,7 +143,7 @@ namespace Maze
             return CurrentMaze.GetTiles();
         }
 
-        void CreateMaze()
+        private void CreateMaze()
         {
             /* 
              * Prim's algorithm
@@ -164,7 +179,7 @@ namespace Maze
             var frontierSet = new HashSet<MP>();
 
             // load first frontier cells
-            MN cellNeighbours = GetNeighbours(frontierCell, 2);
+            var cellNeighbours = GetFrontier(frontierCell);
             AddNewFrontierCells(frontierSet, cellNeighbours);
 
             while (frontierSet.Count > 0)
@@ -172,105 +187,112 @@ namespace Maze
                 frontierCell = PickRandomFrontierCell(frontierSet);
                 MarkPassage(frontierCell);
 
-                MN neighbouringPassages = GetNeighbourPassages(frontierCell);
-                MP randomNeighbourPassage = GetRandomNeighbourPassage(neighbouringPassages);
-                MarkPassage(randomNeighbourPassage);
+                var neighbouringPassages = GetNeighbours(frontierCell);
+                MP randomNeighbourPassage = RandomNeighbour(neighbouringPassages);
+                MarkPassage(Between(frontierCell, randomNeighbourPassage));
 
-                cellNeighbours = GetNeighbours(frontierCell, 2);
+                cellNeighbours = GetFrontier(frontierCell);
                 AddNewFrontierCells(frontierSet, cellNeighbours);
 
                 frontierSet.Remove(frontierCell);
             }
+
+            MarkExit(frontierCell);
         }
 
-        MP PickRandomFrontierCell(IEnumerable<MP> frontierSet)
+        private MP Between(MP p1, MP p2)
+        {
+            int x = 0;
+            int y = 0;
+
+            int tx = p2.x - p1.x;
+            switch (tx)
+            {
+                case 0:  { x = p1.x; } break;
+                case 2:  { x = p1.x + 1; } break;
+                case -2: { x = p1.x - 1; } break;
+                default: throw new InvalidBetween("Invalid paramters given to Between()");
+            }
+
+            int ty = p2.y - p1.y;
+            switch (ty)
+            {
+                case 0:  { y = p1.y; } break;
+                case 2:  { y = p1.y + 1; } break;
+                case -2: { y = p1.y - 1; } break;
+                default: throw new InvalidBetween("Invalid paramters given to Between()");
+            }
+
+            return new MP { x = x, y = y };
+        }
+
+        private MP PickRandomFrontierCell(IEnumerable<MP> frontierSet)
         {
             return frontierSet.ElementAt(randomNumber.Next(frontierSet.Count()));
         }
 
-        MN GetNeighbourPassages(MP coordinate)
+        private MP RandomNeighbour(List<MP> passages)
         {
-            MN neighbourPassages = new MN();
-
-            MN neighbours = GetNeighbours(coordinate, 2);
-
-            if (neighbours.NorthNeighbour.HasValue && CurrentMaze[neighbours.NorthNeighbour.Value] == MT.Passage)
-                { neighbourPassages.NorthNeighbour = GetSouthNeighbour(neighbours.NorthNeighbour.Value); }
-
-            if (neighbours.SouthNeighbour.HasValue && CurrentMaze[neighbours.SouthNeighbour.Value] == MT.Passage)
-                { neighbourPassages.SouthNeighbour = GetNorthNeighbour(neighbours.SouthNeighbour.Value); }
-
-            if (neighbours.EastNeighbour.HasValue  && CurrentMaze[neighbours.EastNeighbour.Value]  == MT.Passage)
-                { neighbourPassages.EastNeighbour  = GetWestNeighbour(neighbours.EastNeighbour.Value); }
-
-            if (neighbours.WestNeighbour.HasValue && CurrentMaze[neighbours.WestNeighbour.Value] == MT.Passage)
-                { neighbourPassages.WestNeighbour = GetEastNeighbour(neighbours.WestNeighbour.Value); }
-
-            return neighbourPassages;
+            return passages[randomNumber.Next(passages.Count)];
+           // ((Func<int>)(() => { int t = randomNumber.Next(neighbours.Count); return (t > 0 ? t : 0); }))() 
         }
 
-        MP GetRandomNeighbourPassage(MN passages)
+        private void AddNewFrontierCells(HashSet<MP> frontierSet, List<MP> neighbouringCells)
         {
-            var neighbours = new List<MP>();
-
-            if (passages.NorthNeighbour.HasValue) { neighbours.Add(passages.NorthNeighbour.Value); }
-            if (passages.SouthNeighbour.HasValue) { neighbours.Add(passages.SouthNeighbour.Value); }
-            if (passages.EastNeighbour.HasValue)  { neighbours.Add(passages.EastNeighbour.Value); }
-            if (passages.WestNeighbour.HasValue)  { neighbours.Add(passages.WestNeighbour.Value); }
-
-            return neighbours[randomNumber.Next(neighbours.Count)];
+            foreach (var position in neighbouringCells)
+            {
+                frontierSet.Add(position);
+            }
         }
 
-        void MarkPassage(MP coordinate)
+        private List<MP> GetNeighbours(MP coordinate)
+        {
+            var neighbours = new List<MP>()
+            {
+                new MP { x = coordinate.x - 2, y = coordinate.y },
+                new MP { x = coordinate.x + 2, y = coordinate.y },
+                new MP { x = coordinate.x, y = coordinate.y - 2 },
+                new MP { x = coordinate.x, y = coordinate.y + 2 },
+            };
+
+            return FilterTile(neighbours, MT.Passage);
+        }
+
+        private List<MP> GetFrontier(MP coordinate)
+        {
+            var frontierCoords = new List<MP>()
+            {
+                new MP { x = coordinate.x - 2, y = coordinate.y },
+                new MP { x = coordinate.x + 2, y = coordinate.y },
+                new MP { x = coordinate.x, y = coordinate.y - 2 },
+                new MP { x = coordinate.x, y = coordinate.y + 2 },
+            };
+
+            return FilterTile(frontierCoords, MT.Blocked);
+        }
+
+        private List<MP> FilterTile(List<MP> tiles, MT kind)
+        {
+            List<MP> newList =
+                tiles.Where(p =>
+                p.x >= 0 && p.x < (CurrentMaze.GetLength(1)) &&
+                p.y >= 0 && p.y < (CurrentMaze.GetLength(0)) &&
+                CurrentMaze[p.x, p.y] == kind).ToList();
+
+            return newList;
+        }
+
+        private void MarkPassage(MP coordinate)
         {
             CurrentMaze[coordinate.x, coordinate.y] = MT.Passage;
         }
 
-        void AddNewFrontierCells(HashSet<MP> frontierSet, MN neighbouringCells)
+        private void MarkExit(MP coordinate)
         {
-            if (neighbouringCells.NorthNeighbour.HasValue) { frontierSet.Add(neighbouringCells.NorthNeighbour.Value); }
-            if (neighbouringCells.SouthNeighbour.HasValue) { frontierSet.Add(neighbouringCells.SouthNeighbour.Value); }
-            if (neighbouringCells.EastNeighbour.HasValue)  { frontierSet.Add(neighbouringCells.EastNeighbour.Value); }
-            if (neighbouringCells.WestNeighbour.HasValue)  { frontierSet.Add(neighbouringCells.WestNeighbour.Value); }
+            CurrentMaze[coordinate.x, coordinate.y] = MT.Exit;
         }
 
-        MN GetNeighbours(MP coordinate, int stepsAway = 1)
-        {
-            return new MN
-            {
-                NorthNeighbour = GetNorthNeighbour(coordinate, stepsAway),
-                SouthNeighbour = GetSouthNeighbour(coordinate, stepsAway),
-                EastNeighbour = GetEastNeighbour(coordinate, stepsAway),
-                WestNeighbour = GetWestNeighbour(coordinate, stepsAway),
-            };
-        }
-
-        MP? GetNorthNeighbour(MP coordinate, int stepsAway = 1)
-        {
-            if (coordinate.y - stepsAway < 0) { return null; }
-
-            return new MP { x = coordinate.x, y = coordinate.y - stepsAway };
-        }
-        MP? GetSouthNeighbour(MP coordinate, int stepsAway = 1)
-        {
-            if (coordinate.y + stepsAway > CurrentMaze.GetLength(0)) { return null; }
-
-            return new MP { x = coordinate.x, y = coordinate.y + stepsAway };
-        }
-        MP? GetEastNeighbour(MP coordinate, int stepsAway = 1)
-        {
-            if (coordinate.x + stepsAway > CurrentMaze.GetLength(1)) { return null; }
-
-            return new MP { x = coordinate.x + stepsAway, y = coordinate.y };
-        }
-        MP? GetWestNeighbour(MP coordinate, int stepsAway = 1)
-        {
-            if (coordinate.x - stepsAway < 0) { return null; }
-
-            return new MP { x = coordinate.x - stepsAway, y = coordinate.y };
-        }
-
-        void SeedMaze(TileCollection toSeed)
+        private void SeedMaze(TileCollection toSeed)
         {
             for (int row = 0; row < CurrentMaze.GetLength(0); row++)
             {
@@ -280,5 +302,14 @@ namespace Maze
                 }
             }
         }
+    }
+
+    class InvalidBetween : Exception
+    {
+        public InvalidBetween() { }
+
+        public InvalidBetween(string message) : base(message) { }
+
+        public InvalidBetween(string message, Exception inner) : base(message, inner) { }
     }
 }
