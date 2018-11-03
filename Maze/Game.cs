@@ -12,6 +12,7 @@ using PDTBC = Platform.PlatformData.TaggedBitmapCoordinates;
 using Maze;
 
 using MT = Maze.MazeData.Tile;
+using Platform;
 
 namespace Game
 {
@@ -29,7 +30,7 @@ namespace Game
         Dictionary<int, Bitmap> LoadTaggedBitmaps(); /* bitmaps with tags to more easily refer to them after being loaded by the platform layer */
         List<PDTBC> Initialize(); /* set initialize game state */
         List<PDTBC> AllTiles(); /* called by platform layer if it ever needs to repaint more than just previous and current tile */
-        bool DoWork(PDKey keyPressed); /* did the game do any work? */
+        void DoWork(PDKey keyPressed);
         List<PDTBC> ToDraw(); /* if it did, call ToDraw() for a list of bitmap tags and their new positions */
         void WindowSizeChanged(int newWidth, int newHeight); /* only used right after a Game object is instantiated, to set the window dimension (bounds checking) */
     }
@@ -46,6 +47,17 @@ namespace Game
         readonly Tuple<int, Bitmap> Exit = Tuple.Create(3, Properties.Resources.Exit);
         readonly Dictionary<PDKey, Action> MovementKeys;
         readonly IMaze MazeInterface;
+
+        readonly List<Tuple<int, Bitmap>> GameOverText = new List<Tuple<int, Bitmap>>
+        {
+            Tuple.Create(4, Properties.Resources.Letter_Y),
+            Tuple.Create(5, Properties.Resources.Letter_O),
+            Tuple.Create(6, Properties.Resources.Letter_U),
+            null,
+            Tuple.Create(7, Properties.Resources.Letter_W),
+            Tuple.Create(8, Properties.Resources.Letter_O),
+            Tuple.Create(9, Properties.Resources.Letter_N),
+        };
 
         int WindowWidth = 0;
         int WindowHeight = 0;
@@ -76,25 +88,12 @@ namespace Game
             WindowHeight = newHeight;
         }
 
-        public bool DoWork(PDKey keyPressed)
+        public void DoWork(PDKey keyPressed)
         {
-            bool didWork = false;
-
             if (CurrentState == GameState.Running)
             {
                 MovementKeys[keyPressed]();
-
-                // player moved, need to draw
-                if (!(OldPlayerPosition.Equals(CurrentPlayerPosition)))
-                {
-                    didWork = true;
-                }
             }
-            else
-            {
-            }
-
-            return didWork;
         }
 
         public void MoveUp()
@@ -188,19 +187,53 @@ namespace Game
          */
         public List<PDTBC> ToDraw()
         {
-            if (OldPlayerPosition.Equals(CurrentPlayerPosition))
+            return AllTiles();
+        }
+
+        private List<PDTBC> MakeTextList(int x, int y, List<Tuple<int, Bitmap>> gameOverText)
+        {
+            int numberOfLetters = 0;
+            int letterAvgWidth = 0;
+
+            foreach (var b in gameOverText)
             {
-                return EmptyDrawList;
-            }
-            else
-            {
-                return new List<PDTBC>
+                if (b != null)
                 {
-                    new PDTBC { tag = Path.Item1, x = OldPlayerPosition.x * CurrentPlayerPosition.scale, y = OldPlayerPosition.y * CurrentPlayerPosition.scale },
-                    new PDTBC { tag = Path.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale },
-                    new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale },
-                };
+                    numberOfLetters++;
+                    letterAvgWidth += b.Item2.Width;
+                }
             }
+
+            letterAvgWidth /= numberOfLetters;
+
+            var textList = new List<PDTBC>();
+            int offset = x;
+
+            bool addSpace = false;
+            foreach (var t in gameOverText)
+            {
+                if (t == null)
+                {
+                    addSpace = true;
+                }
+                else
+                {
+                    if (addSpace)
+                    {
+                        textList.Add(new PDTBC { tag = t.Item1, x = offset + letterAvgWidth, y = y });
+                        offset += letterAvgWidth;
+                        offset += t.Item2.Width;
+                        addSpace = false;
+                    }
+                    else
+                    {
+                        textList.Add(new PDTBC { tag = t.Item1, x = offset, y = y });
+                        offset += t.Item2.Width;
+                    }
+                }
+            }
+
+            return textList;
         }
 
         public List<PDKey> WhenPressedNotify()
@@ -210,45 +243,30 @@ namespace Game
 
         public Dictionary<int, Bitmap> LoadTaggedBitmaps()
         {
-            return new Dictionary<int, Bitmap>
+            var taggedBitmaps = new Dictionary<int, Bitmap>();
+
+            taggedBitmaps.Add(Goblin.Item1, Goblin.Item2);
+            taggedBitmaps.Add(Path.Item1, Path.Item2);
+            taggedBitmaps.Add(Exit.Item1, Exit.Item2);
+
+            foreach (var letter in GameOverText)
             {
-                { Goblin.Item1, Goblin.Item2 },
-                { Path.Item1, Path.Item2 },
-                { Exit.Item1, Exit.Item2 },
-            };
+                if (letter != null)
+                {
+                    taggedBitmaps.Add(
+                        letter.Item1, letter.Item2
+                    );
+                }
+            }
+
+            return taggedBitmaps;
         }
 
         public List<PDTBC> Initialize()
         {
             var maze = MazeInterface.NewMaze();
 
-            var drawList = new List<PDTBC>();
-
-            for (int i = 0; i < maze.GetLength(0); i++)
-            {
-                for (int j = 0; j < maze.GetLength(1); j++)
-                {
-                    if (maze[i, j] == MazeData.Tile.Passage)
-                    {
-                        drawList.Add(
-                            new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
-                        );
-                    }
-                    else if (maze[i, j] == MazeData.Tile.Exit)
-                    {
-                        drawList.Add(
-                            new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
-                        );
-                        drawList.Add(
-                            new PDTBC { tag = Exit.Item1, x = i * TileSize, y = j * TileSize }
-                        );
-                    }
-                }
-            }
-
-            drawList.Add(new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale });
-
-            return drawList;
+            return AllTiles();
         }
 
         public List<PDTBC> AllTiles()
@@ -260,19 +278,31 @@ namespace Game
             {
                 for (int j = 0; j < maze.GetLength(1); j++)
                 {
-                    if (maze[i, j] == MazeData.Tile.Passage)
+                    if (maze[i, j] == MT.Passage)
                     {
                         drawList.Add(
                             new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
                         );
                     }
-                    else if (maze[i, j] == MazeData.Tile.Exit)
+                    else if (maze[i, j] == MT.Exit)
                     {
+                        drawList.Add(
+                            new PDTBC { tag = Path.Item1, x = i * TileSize, y = j * TileSize }
+                        );
                         drawList.Add(
                             new PDTBC { tag = Exit.Item1, x = i * TileSize, y = j * TileSize }
                         );
                     }
                 }
+            }
+
+
+            drawList.Add(new PDTBC { tag = Path.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale });
+            drawList.Add(new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale });
+
+            if (CurrentState == GameState.GameOver)
+            {
+                drawList.AddRange(MakeTextList(WindowWidth / 2, WindowHeight / 2, GameOverText));
             }
 
             return drawList;

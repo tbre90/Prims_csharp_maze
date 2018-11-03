@@ -25,6 +25,7 @@ namespace Platform
         {
             var window = new Platform("Prim's Maze", GameInterface.NewInterface(Maze.MazeInterface.NewInterface()));
             Application.Run(window);
+
         }
     }
 
@@ -50,6 +51,8 @@ namespace Platform
         Dictionary<int, Bitmap> TaggedBitmaps;
         List<PDTBC> DrawList = new List<PDTBC>();
 
+        Graphics g = null;
+
         public Platform(string windowText, IGame gameInterface)
         {
             GameInterface = gameInterface;
@@ -72,8 +75,14 @@ namespace Platform
             TaggedBitmaps = GameInterface.LoadTaggedBitmaps();
 
             DrawList = GameInterface.Initialize();
-            //Refresh();
-            Update();
+            Application.DoEvents();
+
+            g = CreateGraphics();
+
+            var drawRefresh = new System.Windows.Forms.Timer();
+            drawRefresh.Interval = (int)msecSinceLastUpdate;
+            drawRefresh.Tick += new EventHandler(DrawCallback);
+            drawRefresh.Start();
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
@@ -113,22 +122,13 @@ namespace Platform
             var maybeAction = InputToHandle.FirstOrDefault(elem => elem.Item1 == e.KeyCode)?.Item2;
             if (maybeAction.HasValue)
             {
-                if (GameInterface.DoWork(maybeAction.Value))
-                {
-                    DrawList = GameInterface.ToDraw();
-                    foreach (var item in DrawList)
-                    {
-                        Invalidate(
-                            new Rectangle(
-                                item.x,
-                                item.y,
-                                TaggedBitmaps[item.tag].Width,
-                                TaggedBitmaps[item.tag].Height)
-                        );
-                    }
-                    Update();
-                }
+                GameInterface.DoWork(maybeAction.Value);
             }
+        }
+
+        void DrawCallback(object sender, EventArgs e)
+        {
+            Refresh();
         }
 
         void Draw(object sender, PaintEventArgs e)
@@ -144,42 +144,14 @@ namespace Platform
 
             if (currentTimeInMsec - previousTimeInMsec > msecSinceLastUpdate)
             {
-                var monitorLeft   = SystemInformation.VirtualScreen.Left;
-                var monitorTop    = SystemInformation.VirtualScreen.Top;
-                var monitorWidth  = SystemInformation.VirtualScreen.Width;
-                var monitorHeight = SystemInformation.VirtualScreen.Height;
+                DrawList = GameInterface.ToDraw();
 
-                var bounds = DesktopBounds;
-
-                List<PDTBC> oldDrawList = null;
-
-                switch (bounds)
+                Graphics graphics = e.Graphics;
+                foreach (var bm in DrawList)
                 {
-                    case var _ when bounds.X < monitorLeft:
-                    case var _ when bounds.Y < monitorTop:
-                    case var _ when bounds.Right > monitorWidth:
-                    case var _ when bounds.Bottom > monitorHeight:
-                    {
-                            oldDrawList = DrawList;
-                            DrawList = GameInterface.AllTiles();
-                    } break;
-
-                    default:
-                    {
-                    } break;
+                    graphics.DrawImage(TaggedBitmaps[bm.tag], bm.x, bm.y);
                 }
 
-                if (oldDrawList != null)
-                {
-                    DrawList.AddRange(oldDrawList);
-                    Invalidate();
-                }
-            }
-
-            Graphics graphics = e.Graphics;
-            foreach (var bm in DrawList)
-            {
-                graphics.DrawImage(TaggedBitmaps[bm.tag], bm.x, bm.y);
             }
 
             previousTimeInMsec = currentTimeInMsec;
