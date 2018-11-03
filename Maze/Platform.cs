@@ -58,6 +58,7 @@ namespace Platform
             GameInterface = gameInterface;
             ShowIcon = false; // remove default form symbol/icon
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true); // for double buffering
+            SetStyle(ControlStyles.UserPaint, true);
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);  // --||--
             FormBorderStyle = FormBorderStyle.FixedSingle; // do not want a resizeable window
             Text = windowText;

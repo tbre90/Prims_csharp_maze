@@ -37,18 +37,14 @@ namespace Game
 
     class GameInstance : IGame
     {
-        enum GameState { Running, GameOver, IllegalMove };
-
-        GameState CurrentState = GameState.Running;
-
         const int TileSize = 32;
-        readonly Tuple<int, Bitmap> Goblin = Tuple.Create(1, Properties.Resources.Goblin);
-        readonly Tuple<int, Bitmap> Path = Tuple.Create(2, Properties.Resources.Wooden_path);
-        readonly Tuple<int, Bitmap> Exit = Tuple.Create(3, Properties.Resources.Exit);
         readonly Dictionary<PDKey, Action> MovementKeys;
         readonly IMaze MazeInterface;
 
-        readonly List<Tuple<int, Bitmap>> GameOverText = new List<Tuple<int, Bitmap>>
+        readonly Tuple<int, Bitmap> Goblin = Tuple.Create(1, Properties.Resources.Goblin);
+        readonly Tuple<int, Bitmap> Path = Tuple.Create(2, Properties.Resources.Wooden_path);
+        readonly Tuple<int, Bitmap> Exit = Tuple.Create(3, Properties.Resources.Exit);
+        readonly List<Tuple<int, Bitmap>> PlayerWonText = new List<Tuple<int, Bitmap>>
         {
             Tuple.Create(4, Properties.Resources.Letter_Y),
             Tuple.Create(5, Properties.Resources.Letter_O),
@@ -57,13 +53,18 @@ namespace Game
             Tuple.Create(7, Properties.Resources.Letter_W),
             Tuple.Create(8, Properties.Resources.Letter_O),
             Tuple.Create(9, Properties.Resources.Letter_N),
+            Tuple.Create(10, Properties.Resources.Exclamation),
         };
+
+        enum GameState { Running, PlayerWon, IllegalMove };
+        GameState CurrentState = GameState.Running;
 
         int WindowWidth = 0;
         int WindowHeight = 0;
         TilePosition OldPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize };
         TilePosition CurrentPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize };
-        List<PDTBC> EmptyDrawList = new List<PDTBC>();
+
+        List<PDTBC> TaggedGameWonText = null;
 
         public GameInstance(IMaze mazeInterface)
         {
@@ -106,11 +107,11 @@ namespace Game
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.y -= 1;
                 }
-                else if (move == GameState.GameOver)
+                else if (move == GameState.PlayerWon)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.y -= 1;
-                    CurrentState = GameState.GameOver;
+                    CurrentState = GameState.PlayerWon;
                 }
             }
         }
@@ -125,11 +126,11 @@ namespace Game
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.y += 1;
                 }
-                else if (move == GameState.GameOver)
+                else if (move == GameState.PlayerWon)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.y += 1;
-                    CurrentState = GameState.GameOver;
+                    CurrentState = GameState.PlayerWon;
                 }
             }
         }
@@ -144,11 +145,11 @@ namespace Game
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.x -= 1;
                 }
-                else if (move == GameState.GameOver)
+                else if (move == GameState.PlayerWon)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.x -= 1;
-                    CurrentState = GameState.GameOver;
+                    CurrentState = GameState.PlayerWon;
                 }
             }
         }
@@ -163,11 +164,11 @@ namespace Game
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.x += 1;
                 }
-                else if (move == GameState.GameOver)
+                else if (move == GameState.PlayerWon)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.x += 1;
-                    CurrentState = GameState.GameOver;
+                    CurrentState = GameState.PlayerWon;
                 }
             }
         }
@@ -177,7 +178,7 @@ namespace Game
             var tile = MazeInterface.GetTile(x, y);
 
             if      (tile == MT.Passage) { return GameState.Running; }
-            else if (tile == MT.Exit)    { return GameState.GameOver; }
+            else if (tile == MT.Exit)    { return GameState.PlayerWon; }
             else                         { return GameState.IllegalMove; }
         }
 
@@ -249,7 +250,7 @@ namespace Game
             taggedBitmaps.Add(Path.Item1, Path.Item2);
             taggedBitmaps.Add(Exit.Item1, Exit.Item2);
 
-            foreach (var letter in GameOverText)
+            foreach (var letter in PlayerWonText)
             {
                 if (letter != null)
                 {
@@ -265,6 +266,14 @@ namespace Game
         public List<PDTBC> Initialize()
         {
             var maze = MazeInterface.NewMaze();
+
+            // display roughly in the middle of the screen
+            TaggedGameWonText =
+                MakeTextList(
+                    (WindowWidth / 2) - (PlayerWonText[0].Item2.Width * PlayerWonText.Count / 2),
+                    (WindowHeight / 2) - (PlayerWonText[0].Item2.Height / 2),
+                    PlayerWonText
+                );
 
             return AllTiles();
         }
@@ -300,9 +309,9 @@ namespace Game
             drawList.Add(new PDTBC { tag = Path.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale });
             drawList.Add(new PDTBC { tag = Goblin.Item1, x = CurrentPlayerPosition.x * CurrentPlayerPosition.scale, y = CurrentPlayerPosition.y * CurrentPlayerPosition.scale });
 
-            if (CurrentState == GameState.GameOver)
+            if (CurrentState == GameState.PlayerWon)
             {
-                drawList.AddRange(MakeTextList(WindowWidth / 2, WindowHeight / 2, GameOverText));
+                drawList.AddRange(TaggedGameWonText);
             }
 
             return drawList;
