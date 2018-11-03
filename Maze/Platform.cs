@@ -136,7 +136,7 @@ namespace Platform
             /* 
              * check if window is outside monitor, i.e. whole/part of window might need to be refreshed
              * 
-             * don't want to update too often, as this causes window to lag if dragged off screen
+             * don't want to update too often, as this causes window to lag if part of it is off screen
              * so update at most 30 times per second
              */
 

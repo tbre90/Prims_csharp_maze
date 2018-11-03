@@ -19,7 +19,7 @@ namespace Game
     {
         public static IGame NewInterface(IMaze mazeInterface)
         {
-            return new TraversingPlayer(mazeInterface);
+            return new GameInstance(mazeInterface);
         }
     }
 
@@ -34,8 +34,12 @@ namespace Game
         void WindowSizeChanged(int newWidth, int newHeight); /* only used right after a Game object is instantiated, to set the window dimension (bounds checking) */
     }
 
-    class TraversingPlayer : IGame
+    class GameInstance : IGame
     {
+        enum GameState { Running, GameOver, IllegalMove };
+
+        GameState CurrentState = GameState.Running;
+
         const int TileSize = 32;
         readonly Tuple<int, Bitmap> Goblin = Tuple.Create(1, Properties.Resources.Goblin);
         readonly Tuple<int, Bitmap> Path = Tuple.Create(2, Properties.Resources.Wooden_path);
@@ -49,7 +53,7 @@ namespace Game
         TilePosition CurrentPlayerPosition = new TilePosition { x = 0, y = 0, scale = TileSize };
         List<PDTBC> EmptyDrawList = new List<PDTBC>();
 
-        public TraversingPlayer(IMaze mazeInterface)
+        public GameInstance(IMaze mazeInterface)
         {
             MovementKeys = new Dictionary<PDKey, Action>
             {
@@ -76,12 +80,18 @@ namespace Game
         {
             bool didWork = false;
 
-            MovementKeys[keyPressed]();
-
-            // player moved, need to draw
-            if (!(OldPlayerPosition.Equals(CurrentPlayerPosition)))
+            if (CurrentState == GameState.Running)
             {
-                didWork = true;
+                MovementKeys[keyPressed]();
+
+                // player moved, need to draw
+                if (!(OldPlayerPosition.Equals(CurrentPlayerPosition)))
+                {
+                    didWork = true;
+                }
+            }
+            else
+            {
             }
 
             return didWork;
@@ -91,11 +101,17 @@ namespace Game
         {
             if (CurrentPlayerPosition.y * CurrentPlayerPosition.scale - TileSize >= 0)
             {
-                var northTile = MazeInterface.GetTile(CurrentPlayerPosition.x, CurrentPlayerPosition.y - 1);
-                if (northTile == MT.Passage)
+                var move = PerformMove(CurrentPlayerPosition.x, CurrentPlayerPosition.y - 1);
+                if (move == GameState.Running)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.y -= 1;
+                }
+                else if (move == GameState.GameOver)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.y -= 1;
+                    CurrentState = GameState.GameOver;
                 }
             }
         }
@@ -104,11 +120,17 @@ namespace Game
         {
             if (CurrentPlayerPosition.y * CurrentPlayerPosition.scale + TileSize < WindowHeight)
             {
-                var southTile = MazeInterface.GetTile(CurrentPlayerPosition.x, CurrentPlayerPosition.y + 1);
-                if (southTile == MT.Passage)
+                var move = PerformMove(CurrentPlayerPosition.x, CurrentPlayerPosition.y + 1);
+                if (move == GameState.Running)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.y += 1;
+                }
+                else if (move == GameState.GameOver)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.y += 1;
+                    CurrentState = GameState.GameOver;
                 }
             }
         }
@@ -117,11 +139,17 @@ namespace Game
         {
             if (CurrentPlayerPosition.x * CurrentPlayerPosition.scale - TileSize >= 0)
             {
-                var westTile = MazeInterface.GetTile(CurrentPlayerPosition.x - 1, CurrentPlayerPosition.y);
-                if (westTile == MT.Passage)
+                var move = PerformMove(CurrentPlayerPosition.x - 1, CurrentPlayerPosition.y);
+                if (move == GameState.Running)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.x -= 1;
+                }
+                else if (move == GameState.GameOver)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.x -= 1;
+                    CurrentState = GameState.GameOver;
                 }
             }
         }
@@ -130,13 +158,28 @@ namespace Game
         {
             if (CurrentPlayerPosition.x * CurrentPlayerPosition.scale + TileSize < WindowWidth)
             {
-                var westTile = MazeInterface.GetTile(CurrentPlayerPosition.x + 1, CurrentPlayerPosition.y);
-                if (westTile == MT.Passage)
+                var move = PerformMove(CurrentPlayerPosition.x + 1, CurrentPlayerPosition.y);
+                if (move == GameState.Running)
                 {
                     OldPlayerPosition = CurrentPlayerPosition;
                     CurrentPlayerPosition.x += 1;
                 }
+                else if (move == GameState.GameOver)
+                {
+                    OldPlayerPosition = CurrentPlayerPosition;
+                    CurrentPlayerPosition.x += 1;
+                    CurrentState = GameState.GameOver;
+                }
             }
+        }
+
+        GameState PerformMove(int x, int y)
+        {
+            var tile = MazeInterface.GetTile(x, y);
+
+            if      (tile == MT.Passage) { return GameState.Running; }
+            else if (tile == MT.Exit)    { return GameState.GameOver; }
+            else                         { return GameState.IllegalMove; }
         }
 
         /*
