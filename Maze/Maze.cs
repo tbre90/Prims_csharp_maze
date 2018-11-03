@@ -27,28 +27,9 @@ namespace Maze
     public static class MazeData
     {
         public enum Tile { Passage, Blocked, Exit };
-        public struct Position : IEquatable<MP>
+        public struct Position
         { 
             public int x; public int y;
-
-            public override bool Equals(object obj)
-            {
-                return obj is MP && Equals((MP)obj);
-            }
-
-            public bool Equals(MP other)
-            {
-                return x == other.x &&
-                       y == other.y;
-            }
-
-            public override int GetHashCode()
-            {
-                var hashCode = 1502939027;
-                hashCode = hashCode * -1521134295 + x.GetHashCode();
-                hashCode = hashCode * -1521134295 + y.GetHashCode();
-                return hashCode;
-            }
         }
     }
 
