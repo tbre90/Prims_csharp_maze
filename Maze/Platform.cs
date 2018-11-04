@@ -13,19 +13,23 @@ using PDKey = Platform.PlatformData.Key;
 using PDTBC = Platform.PlatformData.TaggedBitmapCoordinates;
 
 using Game;
-using Maze;
 
 namespace Platform
 {
-
     public class MainProgram
     {
+        const int NumberOfRows = 21;
+        const int NumberOfCollumns = 21;
+
         [STAThread]
         public static void Main()
         {
-            var window = new Platform("Prim's Maze", GameInterface.NewInterface(Maze.MazeInterface.NewInterface()));
+            var window = new Platform(NumberOfRows * 32, NumberOfCollumns * 32, "Prim's Maze",
+                GameInterface.NewInterface(
+                        Maze.MazeInterface.NewInterface(NumberOfRows, NumberOfCollumns)
+                    )
+                );
             Application.Run(window);
-
         }
     }
 
@@ -41,32 +45,38 @@ namespace Platform
 
     public class Platform : Form
     {
-        long previousTimeInMsec = 0;
-        long currentTimeInMsec = 0;
+        long PreviousTimeInMsec = 0;
+        long CurrentTimeInMsec = 0;
 
-        long msecSinceLastUpdate = (long) (1.0 / 30.0 * 1000.0);
+        const long UpdatesPerSecond = (long) (1.0 / 30.0 * 1000.0);
 
         IGame GameInterface;
         List<Tuple<Keys, PDKey>> InputToHandle = new List<Tuple<Keys, PDKey>>();
         Dictionary<int, Bitmap> TaggedBitmaps;
         List<PDTBC> DrawList = new List<PDTBC>();
 
-        Graphics g = null;
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= 0x02000000;
+                return cp;
+            }
+        }
 
-        public Platform(string windowText, IGame gameInterface)
+        public Platform(int x, int y, string windowText, IGame gameInterface)
         {
             GameInterface = gameInterface;
             ShowIcon = false; // remove default form symbol/icon
-            SetStyle(ControlStyles.OptimizedDoubleBuffer, true); // for double buffering
-            SetStyle(ControlStyles.UserPaint, true);
-            SetStyle(ControlStyles.AllPaintingInWmPaint, true);  // --||--
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);  // --||--
             FormBorderStyle = FormBorderStyle.FixedSingle; // do not want a resizeable window
+            UpdateStyles();
             Text = windowText;
             MinimizeBox = false; // don't want to handle max/min-imize
             MaximizeBox = false; // --||--
             BackColor = Color.Black;
-            ClientSize = new Size(21 * 32, 21 * 32);
-            Paint += new PaintEventHandler(Draw);
+            ClientSize = new Size(x, y);
             KeyDown += new KeyEventHandler(HandleInput);
 
             GameInterface.WindowSizeChanged(ClientSize.Width, ClientSize.Height);
@@ -76,12 +86,9 @@ namespace Platform
             TaggedBitmaps = GameInterface.LoadTaggedBitmaps();
 
             DrawList = GameInterface.Initialize();
-            Application.DoEvents();
-
-            g = CreateGraphics();
 
             var drawRefresh = new System.Windows.Forms.Timer();
-            drawRefresh.Interval = (int)msecSinceLastUpdate;
+            drawRefresh.Interval = (int)UpdatesPerSecond / 2;
             drawRefresh.Tick += new EventHandler(DrawCallback);
             drawRefresh.Start();
         }
@@ -129,33 +136,23 @@ namespace Platform
 
         void DrawCallback(object sender, EventArgs e)
         {
-            Refresh();
+            CurrentTimeInMsec += DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            if (CurrentTimeInMsec - PreviousTimeInMsec > UpdatesPerSecond)
+            {
+                Debug.WriteLine("Fuaw9odja wpdj");
+                DrawList = GameInterface.ToDraw();
+                Invalidate();
+            }
+            PreviousTimeInMsec = CurrentTimeInMsec;
         }
 
-        void Draw(object sender, PaintEventArgs e)
+        protected override void OnPaint(PaintEventArgs e)
         {
-            /* 
-             * check if window is outside monitor, i.e. whole/part of window might need to be refreshed
-             * 
-             * don't want to update too often, as this causes window to lag if part of it is off screen
-             * so update at most 30 times per second
-             */
-
-            currentTimeInMsec = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-
-            if (currentTimeInMsec - previousTimeInMsec > msecSinceLastUpdate)
+            Graphics g = e.Graphics;
+            foreach (var bm in DrawList)
             {
-                DrawList = GameInterface.ToDraw();
-
-                Graphics graphics = e.Graphics;
-                foreach (var bm in DrawList)
-                {
-                    graphics.DrawImage(TaggedBitmaps[bm.tag], bm.x, bm.y);
-                }
-
+                g.DrawImage(TaggedBitmaps[bm.tag], bm.x, bm.y);
             }
-
-            previousTimeInMsec = currentTimeInMsec;
         }
     }
 }
