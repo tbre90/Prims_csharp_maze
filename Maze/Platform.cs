@@ -45,8 +45,8 @@ namespace Platform
 
     public class Platform : Form
     {
-        long PreviousTimeInMsec = 0;
-        long CurrentTimeInMsec = 0;
+        DateTime EndTime = DateTime.Now;
+        DateTime StartTime = DateTime.Now;
 
         const long UpdatesPerSecond = (long) (1.0 / 30.0 * 1000.0);
 
@@ -86,6 +86,8 @@ namespace Platform
             TaggedBitmaps = GameInterface.LoadTaggedBitmaps();
 
             DrawList = GameInterface.Initialize();
+
+            StartTime = DateTime.Now;
 
             var drawRefresh = new System.Windows.Forms.Timer();
             drawRefresh.Interval = (int)UpdatesPerSecond / 2;
@@ -136,14 +138,13 @@ namespace Platform
 
         void DrawCallback(object sender, EventArgs e)
         {
-            CurrentTimeInMsec += DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            if (CurrentTimeInMsec - PreviousTimeInMsec > UpdatesPerSecond)
+            StartTime = DateTime.Now;
+            if ((StartTime - EndTime).Milliseconds > UpdatesPerSecond)
             {
-                Debug.WriteLine("Fuaw9odja wpdj");
                 DrawList = GameInterface.ToDraw();
                 Invalidate();
+                EndTime = StartTime;
             }
-            PreviousTimeInMsec = CurrentTimeInMsec;
         }
 
         protected override void OnPaint(PaintEventArgs e)
